@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
+  <title>Server error · CareClinic</title>
+  <style>
+    body { margin: 0; padding: 32px 16px; font: 14px/20px system-ui, sans-serif; background: #f8f8f8; color: #0a0a0a; }
+    .box { max-width: 560px; margin: 0 auto; background: #fff; border: 1px solid #e6e6e6; border-radius: 8px; padding: 20px; }
+    h1 { margin: 0 0 6px; font-size: 24px; line-height: 32px; font-weight: 500; }
+    p { margin: 0 0 16px; color: #6b6b6b; }
+    a { display: inline-block; padding: 8px 14px; border-radius: 6px; background: #141414; color: #fff; text-decoration: none; font-weight: 500; }
+    @media (prefers-color-scheme: dark) { body { background: #000; color: #fff; } .box { background: #111; border-color: #2e2e2e; } p { color: #b4b4b4; } a { background: #fff; color: #000; } }
+  </style>
+</head>
+<body>
+  <!-- Standalone on purpose: the 500 page gets no context and must not fail itself. -->
+  <div class="box">
+    <h1>Something went wrong</h1>
+    <p>We couldn't complete your request. Please try again in a moment.</p>
+    <a href="/">Back to doctors</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block extra_style %}
+  .auth { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: var(--gap); }
+  /* The side card stretches to the form's height with its one action pinned to the foot. */
+  .auth .aside { display: flex; flex-direction: column; align-items: flex-start; }
+  .auth .aside .foot { margin-top: auto; padding-top: 16px; }
+  @media (max-width: 760px) { .auth { grid-template-columns: 1fr; } }
+{% endblock %}
+{% block content %}
+<div class="title-row"><div><h1>Log in</h1><p class="sub">To book, change or cancel your visits.</p></div></div>
+<div class="auth">
+  <section class="panel">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_div }}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div><button class="btn btn-primary btn-block">Log in</button></div>
+    </form>
+  </section>
+  <section class="panel aside" aria-labelledby="new-title">
+    <h2 id="new-title">New to CareClinic?</h2>
+    <p class="muted" style="margin-top:6px">An account takes a few seconds and only needs a username and password.</p>
+    <p class="foot"><a class="btn btn-ghost" href="{% url 'signup' %}">Create an account</a></p>
+  </section>
+</div>
+{% endblock %}

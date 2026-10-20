@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Dr. {{ doctor.name }}{% endblock %}
+{% block extra_style %}
+  .profile { display: flex; gap: 16px; align-items: center; }
+  .bio { margin-top: 12px; max-width: 720px; }
+  /* Fourteen days as two rows of seven: 7 x 1fr with a 6px gap fills the panel exactly. */
+  .days { list-style: none; margin: 0 0 20px; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px; border-radius: var(--radius-control);
+         border: 1px solid var(--border); text-decoration: none; background: var(--surface); transition: border-color .12s; }
+  .day:hover { border-color: var(--text); }
+  .day .wd { color: var(--muted); font-size: var(--fs-small); line-height: 16px; }
+  .day .dn { font-size: 16px; line-height: 22px; font-weight: 500; }
+  .day .count { font-size: var(--fs-small); line-height: 16px; }
+  .day[aria-current] { background: var(--active); border-color: var(--text); }
+  .day.off { background: var(--ground); }
+  .day.off .dn { color: var(--muted); }
+  .slots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+  .slot input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .slot label { margin: 0; height: var(--control-height); display: grid; place-items: center; border-radius: var(--radius-control);
+                border: 1px solid var(--control); color: var(--data); font-weight: 500; cursor: pointer; background: var(--surface);
+                font-variant-numeric: tabular-nums; transition: border-color .12s; }
+  .slot label:hover { border-color: var(--data); }
+  .slot input:checked + label { background: var(--data); border-color: var(--data); color: var(--surface); }
+  .slot input:focus-visible + label { outline: 2px solid var(--data); outline-offset: 2px; }
+  fieldset:disabled .slot label { cursor: not-allowed; color: var(--muted); border-color: var(--border); }
+  .step + .step { margin-top: 20px; }
+  .confirm { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  .notice { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 12px 14px; margin-bottom: 16px; border-radius: var(--radius-card); background: var(--raised); }
+  .hours { list-style: none; margin: 0; padding: 0; }
+  .hours li { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--rule); }
+  .hours li:first-child { border-top: 0; padding-top: 0; }
+  @media (max-width: 560px) {
+    .days { gap: 4px; }
+    .day { padding: 6px 0; }
+    .day .count { font-size: 11px; }
+  }
+{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'home' %}">← All doctors</a>
+<div class="title-row">
+  <div class="profile">
+    <span class="avatar avatar-lg" style="--h: {{ doctor.hue }}" aria-hidden="true">{{ doctor.initials }}</span>
+    <div>
+      <h1>Dr. {{ doctor.name }}</h1>
+      <p class="sub">{{ doctor.specialty }} · 30-minute visits</p>
+    </div>
+  </div>
+</div>
+
+<div class="grid-main">
+  <section class="panel" aria-labelledby="book-title">
+    <div class="panel-head">
+      <h2 id="book-title">Book a visit</h2>
+      <span class="muted small">Next 14 days</span>
+    </div>
+    <ul class="days">
+      {% for d in days %}
+        <li><a class="day{% if d.free is None %} off{% endif %}" href="?date={{ d.date|date:'Y-m-d' }}"
+               {% if d.date == day %}aria-current="date"{% endif %}
+               aria-label="{{ d.date|date:'l j F' }}: {% if d.free is None %}not working{% elif d.free %}{{ d.free }} free{% else %}fully booked{% endif %}">
+          <span class="wd">{% if forloop.first %}Today{% else %}{{ d.date|date:"D" }}{% endif %}</span>
+          <span class="dn num">{{ d.date|date:"j" }}</span>
+          {% if d.free is None %}<span class="count muted">Off</span>
+          {% elif d.free %}<span class="count free num">{{ d.free }} free</span>
+          {% else %}<span class="count muted">Full</span>{% endif %}
+        </a></li>
+      {% endfor %}
+    </ul>
+
+    {% if slots %}
+      {% if not user.is_authenticated %}
+        <div class="notice">
+          <p>Log in to book one of these times.</p>
+          <a class="btn btn-primary" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Log in to book</a>
+        </div>
+      {% endif %}
+      <form method="post" action="{% url 'book' doctor.pk %}">
+        {% csrf_token %}
+        <fieldset {% if not user.is_authenticated %}disabled{% endif %}>
+          <fieldset class="step">
+            <legend>{{ day|date:"l j F" }} · {{ slots|length }} free time{{ slots|length|pluralize }}</legend>
+            <ul class="slots">
+              {% for slot in slots %}
+                <li class="slot">
+                  <input type="radio" name="start" id="slot-{{ forloop.counter }}" value="{{ slot.isoformat }}" required
+                         {% if slot == selected_start %}checked{% endif %}>
+                  <label for="slot-{{ forloop.counter }}">{{ slot|time:"H:i" }}</label>
+                </li>
+              {% endfor %}
+            </ul>
+          </fieldset>
+          <div class="step">
+            <label for="reason">What are you coming in for?</label>
+            <textarea id="reason" name="reason" maxlength="500" required aria-describedby="reason-help"
+                      placeholder="For example: itchy rash on my arm for two weeks">{{ reason }}</textarea>
+            <span class="helptext" id="reason-help">Helps the doctor prepare. Only you and clinic staff see it. Up to 500 characters.</span>
+          </div>
+          <div class="confirm">
+            <span class="muted">30 minutes with Dr. {{ doctor.name }}</span>
+            <button class="btn btn-primary">Confirm booking</button>
+          </div>
+        </fieldset>
+      </form>
+    {% else %}
+      <p class="empty">{{ day|date:"l j F" }}: no free times. Pick a day marked in blue above.</p>
+    {% endif %}
+  </section>
+
+  <aside class="stack">
+    <section class="panel" aria-labelledby="about-title">
+      <h2 id="about-title">What Dr. {{ doctor.name }} treats</h2>
+      <p class="muted" style="margin-top:6px">{{ doctor.bio|default:"General consultations." }}</p>
+    </section>
+    <section class="panel" aria-labelledby="hours-title">
+      <h2 id="hours-title" style="margin-bottom:10px">Working hours</h2>
+      <ul class="hours num">
+        {% for h in hours %}
+          <li><span>{{ h.get_weekday_display }}</span><span>{{ h.start_time|time:"H:i" }}–{{ h.end_time|time:"H:i" }}</span></li>
+        {% empty %}
+          <li class="muted">No working hours set yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </aside>
+</div>
+{% endblock %}

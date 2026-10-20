@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Doctors{% endblock %}
+{% block extra_style %}
+  .tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: var(--gap); overflow-x: auto; }
+  .tab { padding: 0 0 10px; color: var(--muted); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent;
+         margin-bottom: -1px; }
+  .tab:hover { color: var(--text); }
+  .tab[aria-current] { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+  .doctors { list-style: none; margin: 0; padding: 0; }
+  .doctor { display: grid; grid-template-columns: 40px minmax(0, 1fr) 150px 72px; gap: 14px; align-items: center;
+            padding: 14px 0; border-top: 1px solid var(--rule); }
+  .doctor:first-child { border-top: 0; padding-top: 2px; }
+  .doctor:last-child { padding-bottom: 2px; }
+  .who a { font-weight: 500; text-decoration: none; }
+  .who a:hover { text-decoration: underline; }
+  .who p { margin-top: 3px; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+  .next { text-align: right; }
+  .next strong { display: block; font-weight: 500; font-size: 16px; line-height: 22px; }
+  .visit dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
+  .visit dt { color: var(--muted); }
+  .visit dd { margin: 0; overflow-wrap: anywhere; }
+  .visit .when { font-size: 20px; line-height: 28px; font-weight: 500; margin-bottom: 12px; }
+  .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  @media (max-width: 560px) {
+    .doctor { grid-template-columns: 40px minmax(0, 1fr) auto; row-gap: 10px; }
+    .doctor .next { grid-column: 2; text-align: left; }
+    .doctor .next strong { display: inline; margin-left: 4px; }
+    .doctor .book { grid-column: 3; grid-row: 2; }
+    .who p { -webkit-line-clamp: 2; }
+  }
+{% endblock %}
+{% block content %}
+<div class="title-row">
+  <div>
+    <h1>Doctors</h1>
+    <p class="sub">
+      {% if soonest %}Soonest free time: <span class="free num">{{ soonest.label }} {{ soonest.slot|time:"H:i" }}</span> with Dr. {{ soonest.doctor.name }}
+      {% else %}No free times in the next two weeks.{% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="grid-main">
+  <section class="panel" aria-labelledby="list-title">
+    <h2 id="list-title" class="skip">Doctors taking appointments</h2>
+    <nav class="tabs" aria-label="Filter by specialty">
+      <a class="tab" href="{% url 'home' %}" {% if not selected %}aria-current="true"{% endif %}>All</a>
+      {% for s in specialties %}
+        <a class="tab" href="?specialty={{ s|urlencode }}" {% if s == selected %}aria-current="true"{% endif %}>{{ s }}</a>
+      {% endfor %}
+    </nav>
+    <ul class="doctors">
+      {% for row in rows %}
+        {% with d=row.doctor %}
+        <li class="doctor">
+          <span class="avatar" style="--h: {{ d.hue }}" aria-hidden="true">{{ d.initials }}</span>
+          <div class="who">
+            <a href="{% url 'doctor' d.pk %}">Dr. {{ d.name }}</a> <span class="muted">· {{ d.specialty }}</span>
+            {% if d.bio %}<p title="{{ d.bio }}">{{ d.bio }}</p>{% endif %}
+          </div>
+          <div class="next">
+            <span class="muted small">Next free</span>
+            {% if row.slot %}<strong class="free num">{{ row.label }} {{ row.slot|time:"H:i" }}</strong>
+            {% else %}<strong class="muted">—</strong>{% endif %}
+          </div>
+          <div class="book">
+            {% if row.slot %}
+              <a class="btn btn-ghost" href="{% url 'doctor' d.pk %}?date={{ row.slot|date:'Y-m-d' }}&amp;start={{ row.slot.isoformat|urlencode }}"
+                 aria-label="Book Dr. {{ d.name }} at {{ row.label }} {{ row.slot|time:'H:i' }}">Book</a>
+            {% else %}
+              <a class="btn btn-ghost" href="{% url 'doctor' d.pk %}">View</a>
+            {% endif %}
+          </div>
+        </li>
+        {% endwith %}
+      {% empty %}
+        <li class="empty">No doctors are taking appointments right now.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <aside class="stack">
+    {% if user.is_authenticated %}
+      <section class="panel visit" aria-labelledby="visit-title">
+        <div class="panel-head"><h2 id="visit-title">Your next visit</h2><a class="small muted" href="{% url 'my_appointments' %}">All visits</a></div>
+        {% if next_visit %}
+          <p class="when num">{{ next_visit.start|date:"l j F" }}, {{ next_visit.start|time:"H:i" }}</p>
+          <dl>
+            <dt>Doctor</dt><dd>Dr. {{ next_visit.doctor.name }}</dd>
+            <dt>Reason</dt><dd>{{ next_visit.reason|default:"—" }}</dd>
+          </dl>
+        {% else %}
+          <p class="empty">No visits booked. Pick a doctor's next free time to book one.</p>
+        {% endif %}
+      </section>
+    {% else %}
+      <section class="panel" aria-labelledby="account-title">
+        <h2 id="account-title">Book with an account</h2>
+        <p class="muted" style="margin-top:6px">Pick a time, tell the doctor why you're coming, and manage your visits in one place.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="{% url 'signup' %}">Create account</a>
+          <a class="btn btn-ghost" href="{% url 'login' %}">Log in</a>
+        </div>
+      </section>
+    {% endif %}
+    <section class="panel" aria-labelledby="how-title">
+      <h2 id="how-title">How visits work</h2>
+      <p class="muted" style="margin-top:6px">Every visit is 30 minutes. You can hold up to {{ limit }} upcoming visits and cancel any of them before it starts.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

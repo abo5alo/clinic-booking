@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block extra_style %}
+  .auth { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: var(--gap); }
+  .auth .aside { display: flex; flex-direction: column; align-items: flex-start; }
+  .auth .aside .foot { margin-top: auto; padding-top: 16px; }
+  .auth .aside ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
+  .auth .aside li + li { margin-top: 6px; }
+  @media (max-width: 760px) { .auth { grid-template-columns: 1fr; } }
+{% endblock %}
+{% block content %}
+<div class="title-row"><div><h1>Create an account</h1><p class="sub">Free, and it takes a few seconds.</p></div></div>
+<div class="auth">
+  <section class="panel">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_div }}
+      <div><button class="btn btn-primary btn-block">Create account</button></div>
+    </form>
+  </section>
+  <section class="panel aside" aria-labelledby="why-title">
+    <h2 id="why-title">With an account you can</h2>
+    <ul>
+      <li>Book any doctor's free 30-minute time</li>
+      <li>Tell the doctor why you're coming</li>
+      <li>See and cancel your upcoming visits</li>
+    </ul>
+    <p class="foot"><a class="btn btn-ghost" href="{% url 'login' %}">Log in instead</a></p>
+  </section>
+</div>
+{% endblock %}

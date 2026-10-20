@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}My visits{% endblock %}
+{% block extra_style %}
+  .visits { list-style: none; margin: 0; padding: 0; }
+  .visit { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 16px; align-items: center;
+           padding: 14px 0; border-top: 1px solid var(--rule); }
+  .visit:first-child { border-top: 0; padding-top: 2px; }
+  .visit:last-child { padding-bottom: 2px; }
+  .when strong { display: block; font-weight: 500; }
+  .what p { margin-top: 3px; color: var(--muted); overflow-wrap: anywhere; }
+  .past .when strong, .past .what { color: var(--muted); }
+  .meter { height: 8px; border-radius: 999px; background: var(--raised); overflow: hidden; margin: 12px 0 6px; }
+  .meter span { display: block; height: 100%; background: var(--data); border-radius: 999px; }
+  .meter-ends { display: flex; justify-content: space-between; }
+  .figure { font-size: 24px; line-height: 32px; font-weight: 500; }
+  @media (max-width: 560px) {
+    .visit { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+    .visit .what { grid-column: 1; grid-row: 2; }
+    .visit form, .visit .pill { grid-column: 2; grid-row: 1 / span 2; }
+  }
+{% endblock %}
+{% block content %}
+<div class="title-row">
+  <div>
+    <h1>My visits</h1>
+    <p class="sub">
+      {% if upcoming %}{% with v=upcoming.0 %}Next: <span class="num">{{ v.start|date:"l j F" }} at {{ v.start|time:"H:i" }}</span> with Dr. {{ v.doctor.name }}{% endwith %}
+      {% else %}No upcoming visits.{% endif %}
+    </p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'home' %}">Book a visit</a>
+</div>
+
+<div class="grid-main">
+  <div class="stack">
+    <section class="panel" aria-labelledby="upcoming-title">
+      <div class="panel-head"><h2 id="upcoming-title">Upcoming</h2></div>
+      {% if upcoming %}
+        <ul class="visits">
+          {% for a in upcoming %}
+            <li class="visit">
+              <div class="when num"><strong>{{ a.start|date:"D j M" }}</strong><span class="muted">{{ a.start|time:"H:i" }}–{{ a.end|time:"H:i" }}</span></div>
+              <div class="what">Dr. {{ a.doctor.name }} <span class="muted">· {{ a.doctor.specialty }}</span>
+                {% if a.reason %}<p>{{ a.reason }}</p>{% endif %}</div>
+              <form method="post" action="{% url 'cancel' a.pk %}">
+                {% csrf_token %}<button class="btn btn-danger" aria-label="Cancel the visit on {{ a.start|date:'l j F' }} at {{ a.start|time:'H:i' }}">Cancel</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">Nothing booked. <a href="{% url 'home' %}">See who has a free time</a>.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="past-title">
+      <div class="panel-head"><h2 id="past-title">Past and cancelled</h2><span class="muted small">Latest 10</span></div>
+      {% if past %}
+        <ul class="visits">
+          {% for a in past %}
+            <li class="visit past">
+              <div class="when num"><strong>{{ a.start|date:"j M Y" }}</strong><span class="muted">{{ a.start|time:"H:i" }}</span></div>
+              <div class="what">Dr. {{ a.doctor.name }}</div>
+              <span class="pill">{% if a.status == "cancelled" %}Cancelled{% else %}Attended{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty">No past visits yet.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="panel" aria-labelledby="limit-title">
+      <h2 id="limit-title">Upcoming visits</h2>
+      <p class="figure num" style="margin-top:8px">{{ upcoming|length }} <span class="muted" style="font-size:14px; font-weight:400">of {{ limit }}</span></p>
+      <div class="meter" role="img" aria-label="{{ upcoming|length }} of {{ limit }} upcoming visits used"><span style="width: {{ used_percent }}%"></span></div>
+      <div class="meter-ends muted small num"><span>0</span><span>{{ limit }}</span></div>
+      <p class="muted" style="margin-top:12px">Cancel a visit you no longer need to free a place for someone else.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

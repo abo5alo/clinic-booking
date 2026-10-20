@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Too many requests{% endblock %}
+{% block content %}
+<div class="title-row"><div><h1>Too many requests</h1><p class="sub">You've tried that too many times in a short while.</p></div></div>
+<section class="panel" style="max-width:560px">
+  <p>Please wait a minute, then try again.</p>
+  <p style="margin-top:16px"><a class="btn btn-ghost" href="{% url 'home' %}">Go to doctors</a></p>
+</section>
+{% endblock %}
