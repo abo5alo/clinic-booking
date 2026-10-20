@@ -1,0 +1,40 @@
+# Render blueprint: Dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: clinic-booking
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz/
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_NUM_PROXIES
+        value: "1"  # Render's proxy sits in front of the app.
+      - key: DJANGO_DEMO
+        value: "1"
+      - key: WEB_CONCURRENCY
+        value: "2"  # The free plan has 512 MB of memory.
+      - key: DJANGO_DEMO_PASSWORD
+        sync: false  # Entered in the dashboard; shown in the README as the public demo login.
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false  # Secret; never committed.
+      - key: POSTGRES_HOST
+        fromDatabase: { name: clinic-db, property: host }
+      - key: POSTGRES_PORT
+        fromDatabase: { name: clinic-db, property: port }
+      - key: POSTGRES_DB
+        fromDatabase: { name: clinic-db, property: database }
+      - key: POSTGRES_USER
+        fromDatabase: { name: clinic-db, property: user }
+      - key: POSTGRES_PASSWORD
+        fromDatabase: { name: clinic-db, property: password }
+
+databases:
+  - name: clinic-db
+    plan: free
+    databaseName: clinic
+    user: clinic

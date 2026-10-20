@@ -31,6 +31,12 @@ if not SECRET_KEY:
     SECRET_KEY = 'insecure-local-development-key'
 
 ALLOWED_HOSTS = [h for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h]
+# Render sets the service's public host name; accept it without hardcoding the URL.
+if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
+
+# A public demo: shows a "don't enter real medical information" banner and allows seeding demo data.
+DEMO = os.environ.get('DJANGO_DEMO') == '1'
 
 if not DEBUG:
     SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SSL_REDIRECT', '1') == '1'
@@ -77,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'clinic.context_processors.demo',
             ],
         },
     },
@@ -162,6 +169,9 @@ LOGOUT_REDIRECT_URL = 'home'
 # Number of reverse proxies in front of the app (e.g. 1 on Render/Fly). Used to find the real
 # client IP for rate limiting; 0 means trust REMOTE_ADDR, since X-Forwarded-For can be forged.
 NUM_PROXIES = int(os.environ.get('DJANGO_NUM_PROXIES', '0'))
+if NUM_PROXIES:
+    # The proxy terminates HTTPS; trust its header so SSL redirects and secure cookies work (no redirect loop).
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

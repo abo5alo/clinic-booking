@@ -200,6 +200,38 @@ class WebViewTests(ClinicTestCase):
         self.assertEqual(int(self.client.session["_auth_user_id"]), get_user_model().objects.get(username="new").pk)
 
 
+class SeedDemoTests(TestCase):
+    def run_seed(self, **env):
+        from io import StringIO
+        from unittest import mock
+
+        from django.core.management import call_command
+        with mock.patch.dict("os.environ", env):
+            call_command("seed_demo", stdout=StringIO())
+
+    def test_does_nothing_outside_demo_mode(self):
+        with self.settings(DEMO=False):
+            self.run_seed(DJANGO_DEMO_PASSWORD="pw-for-tests-only")
+        self.assertFalse(Doctor.objects.exists())
+
+    def test_seeds_once_and_keeps_demo_visits_booked(self):
+        with self.settings(DEMO=True):
+            self.run_seed(DJANGO_DEMO_PASSWORD="pw-for-tests-only")
+            self.run_seed(DJANGO_DEMO_PASSWORD="pw-for-tests-only")  # A second boot must not duplicate anything.
+        self.assertEqual(Doctor.objects.count(), 4)
+        demo = get_user_model().objects.get(username="demo")
+        self.assertTrue(demo.check_password("pw-for-tests-only"))
+        self.assertEqual(demo.appointments.filter(status=Appointment.Status.BOOKED).count(), 2)
+
+
+class DemoBannerTests(TestCase):
+    def test_banner_only_in_demo_mode(self):
+        with self.settings(DEMO=True):
+            self.assertContains(self.client.get(reverse("home")), "Don't enter real medical information")
+        with self.settings(DEMO=False):
+            self.assertNotContains(self.client.get(reverse("home")), "Don't enter real medical information")
+
+
 class ApiTests(ClinicTestCase):
     def setUp(self):
         super().setUp()

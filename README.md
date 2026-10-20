@@ -41,6 +41,16 @@ docker compose up --build
 docker compose exec web python manage.py createsuperuser
 ```
 
+## Deploy (Render)
+
+`render.yaml` describes the whole setup: a Docker web service plus a Postgres database, both on the free plan.
+
+1. In Render: **New → Blueprint**, then pick this repository.
+2. Fill in the values Render asks for: `DJANGO_DEMO_PASSWORD` (the public demo login), and `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL` and `DJANGO_SUPERUSER_PASSWORD` (your admin account).
+3. On every start, the container applies migrations, seeds the demo doctors (`seed_demo`, only when `DJANGO_DEMO=1`), creates the admin if it doesn't exist, and starts gunicorn.
+
+The demo shows a banner asking visitors not to enter real medical information, because the demo patient account is shared.
+
 ## Tests
 
 ```powershell
